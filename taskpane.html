@@ -1,0 +1,223 @@
+<!-- Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT License. -->
+<!-- This file shows how to design a first-run page that provides a welcome screen to the user about the features of the add-in. -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Contoso Task Pane Add-in</title>
+
+    <!-- Office JavaScript API -->
+<script>
+    /*
+ * Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license.
+ * See LICENSE in the project root for license information.
+ */
+
+/* global document, Office */
+
+Office.onReady((info) => {
+  if (info.host === Office.HostType.Outlook) {
+    document.getElementById("sideload-msg").style.display = "none";
+    document.getElementById("app-body").style.display = "flex";
+    document.getElementById("run").onclick = run;
+  }
+});
+
+export async function run() {
+  /**
+   * Insert your Outlook code here
+   */
+
+  const item = Office.context.mailbox.item;
+  let insertAt = document.getElementById("item-subject");
+  let label = document.createElement("b").appendChild(document.createTextNode("Subject: "));
+  insertAt.appendChild(label);
+  insertAt.appendChild(document.createElement("br"));
+  insertAt.appendChild(document.createTextNode(item.subject));
+  insertAt.appendChild(document.createElement("br"));
+}
+
+
+function onNewMessageComposeHandler(event) {
+    const item = Office.context.mailbox.item;
+    const signatureIcon = "iVBORw0KGgoAAAANSUhEUgAAACcAAAAnCAMAAAC7faEHAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAzUExURQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKMFRskAAAAQdFJOUwAQIDBAUGBwgI+fr7/P3+8jGoKKAAAACXBIWXMAAA7DAAAOwwHHb6hkAAABT0lEQVQ4T7XT2ZalIAwF0DAJhMH+/6+tJOQqot6X6joPiouNBo3w9/Hd6+hrYnUt6vhLcjEAJevVW0zJxABSlcunhERpjY+UKoNN5+ZgDGu2onNz0OngjP2FM1VdyBW1LtvGeYrBLs7U5I1PTXZt+zifcS3Icw2GcS3vxRY3Vn/iqx31hUyTnV515kdTfbaNhZLI30AceqDiIo4tyKEmJpKdP5M4um+nUwfDWxAXdzqMNKQ14jLdL5ntXzxcRF440mhS6yu882Kxa30RZcUIjTCJg7lscsR4VsMjfX9Q0Vuv/Wd3YosD1J4LuSRtaL7bzXGN1wx2cytUdncDuhA3fu6HPTiCvpQUIjZ3sCcHVbvLtbNTHlysx2w9/s27m9gEb+7CTri6hR1wcTf2gVf3wBRe3CMbcHYvTODkXhnD0+178K/pZ9+n/C1ru/2HAPwAo7YM1X4+tLMAAAAASUVORK5CYII=";
+
+    // Get the sender's account information.
+    item.from.getAsync((result) => {
+        if (result.status === Office.AsyncResultStatus.Failed) {
+            console.log(result.error.message);
+            event.completed();
+            return;
+        }
+
+        // Create a signature based on the sender's information.
+        const name = result.value.displayName;
+        const options = { asyncContext: name, isInline: true };
+        item.addFileAttachmentFromBase64Async(signatureIcon, "signatureIcon.png", options, (result) => {
+            if (result.status === Office.AsyncResultStatus.Failed) {
+                console.log(result.error.message);
+                event.completed();
+                return;
+            }
+
+            // Add the created signature to the message.
+            const signature = "<img src='cid:signatureIcon.png'>" + result.asyncContext;
+            item.body.setSignatureAsync(signature, { coercionType: Office.CoercionType.Html }, (result) => {
+                if (result.status === Office.AsyncResultStatus.Failed) {
+                    console.log(result.error.message);
+                    event.completed();
+                    return;
+                }
+
+                // Show a notification when the signature is added to the message.
+                // Important: Only the InformationalMessage type is supported in Outlook mobile at this time.
+                const notification = {
+                    type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
+                    message: "Company signature added.",
+                    icon: "none",
+                    persistent: false                        
+                };
+                item.notificationMessages.addAsync("signature_notification", notification, (result) => {
+                    if (result.status === Office.AsyncResultStatus.Failed) {
+                        console.log(result.error.message);
+                        event.completed();
+                        return;
+                    }
+
+                    event.completed();
+                });
+            });
+        });
+    });
+}
+</script>
+    <!-- For more information on Fluent UI, visit https://developer.microsoft.com/fluentui#/. -->
+    <link rel="stylesheet"
+        href="https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/office-ui-fabric-core/11.1.0/css/fabric.min.css" />
+
+    <style>
+        /* 
+    * Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license.
+    * See LICENSE in the project root for license information.
+    */
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        ul {
+            margin: 0;
+            padding: 0;
+        }
+
+        .ms-welcome__header {
+            padding: 20px;
+            padding-bottom: 30px;
+            padding-top: 100px;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-flex-direction: column;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .ms-welcome__main {
+            display: -webkit-flex;
+            display: flex;
+            -webkit-flex-direction: column;
+            flex-direction: column;
+            -webkit-flex-wrap: nowrap;
+            flex-wrap: nowrap;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-flex: 1 0 0;
+            flex: 1 0 0;
+            padding: 10px 20px;
+        }
+
+        .ms-welcome__main>h2 {
+            width: 100%;
+            text-align: center;
+        }
+
+        .ms-welcome__features {
+            list-style-type: none;
+            margin-top: 20px;
+        }
+
+        .ms-welcome__features.ms-List .ms-ListItem {
+            padding-bottom: 20px;
+            display: -webkit-flex;
+            display: flex;
+        }
+
+        .ms-welcome__features.ms-List .ms-ListItem>.ms-Icon {
+            margin-right: 10px;
+        }
+
+        .ms-welcome__action.ms-Button--hero {
+            margin-top: 30px;
+        }
+
+        .ms-Button.ms-Button--hero .ms-Button-label {
+            color: #0078d7;
+        }
+
+        .ms-Button.ms-Button--hero:hover .ms-Button-label,
+        .ms-Button.ms-Button--hero:focus .ms-Button-label {
+            color: #005a9e;
+            cursor: pointer;
+        }
+
+        b {
+            font-weight: bold;
+        }
+    </style>
+    <!-- Template styles -->
+</head>
+
+
+
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <header class="ms-welcome__header ms-bgColor-neutralLighter">
+        <img width="90" height="90" src="../../assets/logo-filled.png" alt="Contoso" title="Contoso" />
+        <h1 class="ms-font-su">Welcome</h1>
+    </header>
+    <section id="sideload-msg" class="ms-welcome__main">
+        <h2 class="ms-font-xl">Please <a target="_blank"
+                href="https://learn.microsoft.com/office/dev/add-ins/testing/test-debug-office-add-ins#sideload-an-office-add-in-for-testing">sideload</a>
+            your add-in to see app body.</h2>
+    </section>
+    <main id="app-body" class="ms-welcome__main" style="display: none;">
+        <h2 class="ms-font-xl"> Discover what Office Add-ins can do for you today! </h2>
+        <ul class="ms-List ms-welcome__features">
+            <li class="ms-ListItem">
+                <i class="ms-Icon ms-Icon--Ribbon ms-font-xl"></i>
+                <span class="ms-font-m">Achieve more with Office integration</span>
+            </li>
+            <li class="ms-ListItem">
+                <i class="ms-Icon ms-Icon--Unlock ms-font-xl"></i>
+                <span class="ms-font-m">Unlock features and functionality</span>
+            </li>
+            <li class="ms-ListItem">
+                <i class="ms-Icon ms-Icon--Design ms-font-xl"></i>
+                <span class="ms-font-m">Create and visualize like a pro</span>
+            </li>
+        </ul>
+        <p class="ms-font-l">Modify the source files, then click <b>Run</b>.</p>
+        <div role="button" id="run" class="ms-welcome__action ms-Button ms-Button--hero ms-font-xl">
+            <span class="ms-Button-label">Run</span>
+        </div>
+        <p><label id="item-subject"></label></p>
+    </main>
+</body>
+
+</html>
